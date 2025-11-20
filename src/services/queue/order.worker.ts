@@ -4,6 +4,7 @@ import { config } from '../../config';
 import { logger } from '../../utils';
 import { OrderRepository } from '../../repositories';
 import { DexRouterService } from '../dex';
+import { WebSocketService } from '../websocket';
 import { queueConnection } from './order.queue';
 import { OrderJobData, OrderJobResult } from './types';
 
@@ -71,6 +72,7 @@ export class OrderWorker {
         status: OrderStatus.ROUTING,
         message: 'Comparing DEX prices',
       });
+      WebSocketService.broadcastOrderUpdate(orderId, OrderStatus.ROUTING, 'Comparing DEX prices');
 
       // Find best route
       const routingResult = await this.dexRouter.findBestRoute(
@@ -94,6 +96,15 @@ export class OrderWorker {
           estimatedOutput: routingResult.selectedQuote.estimatedOutput,
         },
       });
+      WebSocketService.broadcastOrderUpdate(
+        orderId,
+        OrderStatus.BUILDING,
+        `Building transaction on ${routingResult.selectedDex}`,
+        {
+          dex: routingResult.selectedDex,
+          estimatedOutput: routingResult.selectedQuote.estimatedOutput,
+        }
+      );
 
       // Update status to SUBMITTED
       await this.orderRepository.updateStatus({
@@ -101,6 +112,7 @@ export class OrderWorker {
         status: OrderStatus.SUBMITTED,
         message: 'Transaction submitted to network',
       });
+      WebSocketService.broadcastOrderUpdate(orderId, OrderStatus.SUBMITTED, 'Transaction submitted to network');
 
       // Execute swap
       const swapResult = await this.dexRouter.executeSwap(
@@ -128,6 +140,17 @@ export class OrderWorker {
           dex: routingResult.selectedDex,
         },
       });
+      WebSocketService.broadcastOrderUpdate(
+        orderId,
+        OrderStatus.CONFIRMED,
+        'Order executed successfully',
+        {
+          txHash: swapResult.txHash,
+          executedPrice: swapResult.executedPrice,
+          outputAmount: swapResult.outputAmount,
+          dex: routingResult.selectedDex,
+        }
+      );
 
       return {
         orderId,
@@ -152,6 +175,10 @@ export class OrderWorker {
       // If this was the last attempt, mark as failed
       if (job.attemptsMade + 1 >= (job.opts.attempts || 1)) {
         await this.orderRepository.markAsFailed(orderId, errorMessage);
+        WebSocketService.broadcastOrderUpdate(orderId, OrderStatus.FAILED, errorMessage, {
+          error: errorMessage,
+          attempts: job.attemptsMade + 1,
+        });
 
         logger.error('Order marked as failed after max retries', {
           orderId,
