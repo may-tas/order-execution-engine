@@ -1,6 +1,7 @@
 import { config } from './config';
+import { logger } from './utils';
 
-console.log('🚀 Order Execution Engine');
-console.log('Environment:', config.server.nodeEnv);
-console.log('Port:', config.server.port);
-console.log('✅ Configuration loaded successfully');
+logger.info('Order Execution Engine');
+logger.info('Environment:', { env: config.server.nodeEnv });
+logger.info('Port:', { port: config.server.port });
+logger.info('Configuration loaded successfully');

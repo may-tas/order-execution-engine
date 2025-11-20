@@ -114,7 +114,7 @@ export class OrderService {
           throw new Error('SNIPER orders not yet implemented');
 
         default:
-          throw new Error(`Unsupported order type: ${validatedInput.type}`);
+          throw new Error(`Unsupported order type: ${String(validatedInput.type)}`);
       }
     } catch (error) {
       logger.error('Failed to create order', {

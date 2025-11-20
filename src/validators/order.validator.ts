@@ -56,9 +56,7 @@ export type OrderIdParam = z.infer<typeof orderIdSchema>;
  * Order Status Query Schema
  */
 export const orderStatusQuerySchema = z.object({
-  status: z
-    .enum(['PENDING', 'ROUTING', 'BUILDING', 'SUBMITTED', 'CONFIRMED', 'FAILED'])
-    .optional(),
+  status: z.enum(['PENDING', 'ROUTING', 'BUILDING', 'SUBMITTED', 'CONFIRMED', 'FAILED']).optional(),
   limit: z
     .string()
     .regex(/^\d+$/, 'Limit must be a number')

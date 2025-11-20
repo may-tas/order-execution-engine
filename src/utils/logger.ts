@@ -5,7 +5,8 @@ const { combine, timestamp, printf, colorize, errors } = winston.format;
 
 // Custom format for console output
 const consoleFormat = printf(({ level, message, timestamp, ...metadata }) => {
-  let msg = `${timestamp as string} [${level}] : ${message}`;
+  const ts = String(timestamp);
+  let msg = `${ts} [${String(level)}] : ${String(message)}`;
 
   // Add metadata if present
   if (Object.keys(metadata).length > 0) {

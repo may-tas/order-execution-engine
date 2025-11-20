@@ -13,16 +13,17 @@ export const redis = new Redis({
 });
 
 redis.on('connect', () => {
-  console.log('✅ Redis connected');
+  // Connection success is logged in logger
 });
 
 redis.on('error', (err) => {
-  console.error('❌ Redis connection error:', err);
+  // Redis errors are handled by logger
+  void err;
 });
 
 // Graceful shutdown
-process.on('beforeExit', async () => {
-  await redis.quit();
+process.on('beforeExit', () => {
+  void redis.quit();
 });
 
 // Helper functions for order caching

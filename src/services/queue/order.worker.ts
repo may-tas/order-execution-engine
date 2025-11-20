@@ -112,7 +112,11 @@ export class OrderWorker {
         status: OrderStatus.SUBMITTED,
         message: 'Transaction submitted to network',
       });
-      WebSocketService.broadcastOrderUpdate(orderId, OrderStatus.SUBMITTED, 'Transaction submitted to network');
+      WebSocketService.broadcastOrderUpdate(
+        orderId,
+        OrderStatus.SUBMITTED,
+        'Transaction submitted to network'
+      );
 
       // Execute swap
       const swapResult = await this.dexRouter.executeSwap(
@@ -287,12 +291,12 @@ export class OrderWorker {
 }
 
 // Graceful shutdown handlers
-process.on('SIGTERM', async () => {
+process.on('SIGTERM', () => {
   logger.info('SIGTERM received, shutting down worker...');
   process.exit(0);
 });
 
-process.on('SIGINT', async () => {
+process.on('SIGINT', () => {
   logger.info('SIGINT received, shutting down worker...');
   process.exit(0);
 });

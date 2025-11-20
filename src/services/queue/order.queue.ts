@@ -40,14 +40,18 @@ orderQueue.on('error', (error: Error) => {
 });
 
 // Graceful shutdown
-process.on('SIGTERM', async () => {
-  logger.info('Closing order queue...');
-  await orderQueue.close();
+process.on('SIGTERM', () => {
+  void (async () => {
+    logger.info('Closing order queue...');
+    await orderQueue.close();
+  })();
 });
 
-process.on('SIGINT', async () => {
-  logger.info('Closing order queue...');
-  await orderQueue.close();
+process.on('SIGINT', () => {
+  void (async () => {
+    logger.info('Closing order queue...');
+    await orderQueue.close();
+  })();
 });
 
 logger.info('Order queue initialized', {

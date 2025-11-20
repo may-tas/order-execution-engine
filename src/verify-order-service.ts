@@ -23,7 +23,7 @@ async function verifyOrderService() {
         amountIn: 10,
       });
       logger.error('❌ Validation should have failed');
-    } catch (error) {
+    } catch (_error) {
       logger.info('✅ Validation correctly rejected invalid input');
     }
 
@@ -99,7 +99,7 @@ async function verifyOrderService() {
         amountIn: 1,
       });
       logger.warn('Order created with same tokenIn/tokenOut (should add validation)');
-    } catch (error) {
+    } catch (_error) {
       logger.info('✅ Error handled gracefully');
     }
 
@@ -113,7 +113,7 @@ async function verifyOrderService() {
         amountIn: 2000000000, // Exceeds max
       });
       logger.error('❌ Should have rejected large amount');
-    } catch (error) {
+    } catch (_error) {
       logger.info('✅ Large amount correctly rejected');
     }
 
@@ -128,7 +128,7 @@ async function verifyOrderService() {
         slippage: 0.6, // 60% - too high
       });
       logger.error('❌ Should have rejected high slippage');
-    } catch (error) {
+    } catch (_error) {
       logger.info('✅ High slippage correctly rejected');
     }
 
