@@ -1,0 +1,105 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum OrderStatus {
+  PENDING
+  ROUTING
+  BUILDING
+  SUBMITTED
+  CONFIRMED
+  FAILED
+}
+
+enum OrderType {
+  MARKET
+  LIMIT
+  SNIPER
+}
+
+enum DexType {
+  RAYDIUM
+  METEORA
+}
+
+model Order {
+  id              String            @id @default(uuid())
+  type            OrderType
+  tokenIn         String
+  tokenOut        String
+  amountIn        Float
+  slippage        Float             @default(0.01)
+  status          OrderStatus       @default(PENDING)
+  userId          String?           // Optional for future auth
+  retryCount      Int               @default(0)
+  failureReason   String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  
+  // Relations
+  statusHistory   OrderStatusHistory[]
+  execution       OrderExecution?
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([userId])
+}
+
+model OrderStatusHistory {
+  id          String      @id @default(uuid())
+  orderId     String
+  status      OrderStatus
+  message     String?
+  metadata    Json?
+  createdAt   DateTime    @default(now())
+  
+  // Relations
+  order       Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([createdAt])
+}
+
+model OrderExecution {
+  id                String      @id @default(uuid())
+  orderId           String      @unique
+  dex               DexType
+  txHash            String
+  executedPrice     Float
+  executedAmount    Float
+  inputAmount       Float
+  outputAmount      Float
+  fee               Float
+  slippage          Float
+  executionTimeMs   Int
+  createdAt         DateTime    @default(now())
+  
+  // Relations
+  order             Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([txHash])
+  @@index([dex])
+  @@index([createdAt])
+}
+
+model DexQuoteLog {
+  id              String      @id @default(uuid())
+  orderId         String
+  dex             DexType
+  price           Float
+  fee             Float
+  estimatedOutput Float
+  latencyMs       Int
+  selectedForExecution Boolean  @default(false)
+  createdAt       DateTime    @default(now())
+
+  @@index([orderId])
+  @@index([createdAt])
+}
