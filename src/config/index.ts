@@ -24,13 +24,11 @@ export const config = {
   },
   order: {
     maxRetryAttempts: parseInt(process.env.MAX_RETRY_ATTEMPTS || '3', 10),
-    executionTimeoutMs: parseInt(process.env.EXECUTION_TIMEOUT_MS || '30000', 10),
   },
   logging: {
     level: process.env.LOG_LEVEL || 'info',
   },
   dex: {
-    mockExecutionDelayMs: parseInt(process.env.MOCK_EXECUTION_DELAY_MS || '2500', 10),
     raydiumFee: parseFloat(process.env.RAYDIUM_FEE || '0.003'),
     meteoraFee: parseFloat(process.env.METEORA_FEE || '0.002'),
   },
