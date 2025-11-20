@@ -4,9 +4,8 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 /* eslint-disable @typescript-eslint/require-await */
 import { FastifyRequest } from 'fastify';
-import type { WebSocket } from '@fastify/websocket';
+import type { WebSocket } from 'ws';
 import { randomUUID } from 'crypto';
-import { OrderStatus } from '@prisma/client';
 import { logger } from '../../utils';
 import {
   WebSocketMessageType,
@@ -17,17 +16,13 @@ import {
   ConnectionInfo,
 } from './types';
 
-interface SocketStream {
-  socket: WebSocket;
-}
-
 /**
  * WebSocket Manager
  * Handles WebSocket connections, room-based broadcasting, and heartbeat
  * Note: ESLint rules disabled due to type inference issues with @fastify/websocket
  */
 export class WebSocketManager {
-  private connections: Map<string, SocketStream>;
+  private connections: Map<string, WebSocket>;
   private connectionInfo: Map<string, ConnectionInfo>;
   private orderRooms: Map<string, Set<string>>; // orderId -> Set of connectionIds
   private heartbeatInterval: NodeJS.Timeout | null = null;
@@ -46,12 +41,11 @@ export class WebSocketManager {
   /**
    * Handle new WebSocket connection
    */
-  handleConnection(connection: SocketStream, request: FastifyRequest): string {
+  handleConnection(socket: WebSocket, request: FastifyRequest): string {
     const connectionId = randomUUID();
     const clientIp = request.ip;
-    const socket = connection.socket as WebSocket;
 
-    this.connections.set(connectionId, connection);
+    this.connections.set(connectionId, socket);
     this.connectionInfo.set(connectionId, {
       connectionId,
       subscribedOrders: new Set(),
@@ -173,10 +167,9 @@ export class WebSocketManager {
 
     // Send confirmation
     this.sendMessage(connectionId, {
-      type: WebSocketMessageType.ORDER_UPDATE,
+      type: WebSocketMessageType.SUBSCRIBED,
       payload: {
         orderId,
-        status: OrderStatus.PENDING,
         message: 'Subscribed to order updates',
       },
       timestamp: Date.now(),
@@ -281,15 +274,15 @@ export class WebSocketManager {
    * Send message to specific connection
    */
   private sendMessage(connectionId: string, message: WebSocketMessage): void {
-    const connection = this.connections.get(connectionId);
+    const socket = this.connections.get(connectionId);
 
-    if (!connection || (connection.socket as WebSocket).readyState !== 1) {
+    if (!socket || socket.readyState !== 1) {
       // WebSocket.OPEN = 1
       return;
     }
 
     try {
-      (connection.socket as WebSocket).send(JSON.stringify(message));
+      socket.send(JSON.stringify(message));
     } catch (error) {
       logger.error('Error sending WebSocket message', {
         connectionId,
@@ -346,11 +339,11 @@ export class WebSocketManager {
    * Close a specific connection
    */
   private closeConnection(connectionId: string): void {
-    const connection = this.connections.get(connectionId);
+    const socket = this.connections.get(connectionId);
 
-    if (connection) {
+    if (socket) {
       try {
-        (connection.socket as WebSocket).close();
+        socket.close();
       } catch (error) {
         logger.error('Error closing connection', {
           connectionId,
@@ -394,9 +387,9 @@ export class WebSocketManager {
 
     // Close all connections
     await Promise.all(
-      Array.from(this.connections.entries()).map(async ([connectionId, connection]) => {
+      Array.from(this.connections.entries()).map(async ([connectionId, socket]) => {
         try {
-          (connection.socket as WebSocket).close();
+          socket.close();
         } catch (error) {
           logger.error('Error closing connection during shutdown', {
             connectionId,

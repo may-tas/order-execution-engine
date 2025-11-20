@@ -6,14 +6,14 @@ export async function websocketRoutes(fastify: FastifyInstance) {
   fastify.get(
     '/ws',
     { websocket: true },
-    (connection, request) => {
+    (socket, request) => {
       logger.info('WebSocket connection request', {
         ip: request.ip,
         headers: request.headers,
       });
 
       try {
-        wsManager.handleConnection(connection, request);
+        wsManager.handleConnection(socket, request);
       } catch (error) {
         logger.error('Failed to handle WebSocket connection', {
           error: error instanceof Error ? error.message : String(error),

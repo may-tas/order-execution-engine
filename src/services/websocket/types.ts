@@ -7,10 +7,11 @@ export enum WebSocketMessageType {
   PING = 'ping',
 
   // Server to Client
-  ORDER_UPDATE = 'order_update',
+  ORDER_UPDATE = 'order-update',
   ERROR = 'error',
   PONG = 'pong',
   CONNECTED = 'connected',
+  SUBSCRIBED = 'subscribed',
 }
 
 export interface WebSocketMessage {
