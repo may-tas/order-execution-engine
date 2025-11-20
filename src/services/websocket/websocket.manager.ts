@@ -1,7 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 /* eslint-disable @typescript-eslint/require-await */
 import { FastifyRequest } from 'fastify';
 import type { WebSocket } from 'ws';
@@ -19,15 +15,19 @@ import {
 /**
  * WebSocket Manager
  * Handles WebSocket connections, room-based broadcasting, and heartbeat
- * Note: ESLint rules disabled due to type inference issues with @fastify/websocket
+ * 
+ * Timeout Strategy:
+ * - HEARTBEAT_INTERVAL: 30s - Server actively pings clients to maintain connections
+ * - CONNECTION_TIMEOUT: 5min - Connections timeout after 5 minutes of no response
  */
 export class WebSocketManager {
   private connections: Map<string, WebSocket>;
   private connectionInfo: Map<string, ConnectionInfo>;
   private orderRooms: Map<string, Set<string>>; // orderId -> Set of connectionIds
   private heartbeatInterval: NodeJS.Timeout | null = null;
-  private readonly HEARTBEAT_INTERVAL = 30000; // 30 seconds
-  private readonly CONNECTION_TIMEOUT = 60000; // 60 seconds
+  private readonly HEARTBEAT_INTERVAL = 30000; // 30 seconds - server pings clients
+  private readonly CONNECTION_TIMEOUT = 300000; // 5 minutes - industry standard for trading platforms
+  private readonly ALL_ORDERS_ROOM = '*'; // Special room for all order updates
 
   constructor() {
     this.connections = new Map();
@@ -125,6 +125,11 @@ export class WebSocketManager {
           this.handlePing(connectionId);
           break;
 
+        case WebSocketMessageType.PONG:
+          // Client responded to server ping, lastPing already updated above
+          logger.debug('Received pong from client', { connectionId });
+          break;
+
         default:
           logger.warn('Unknown message type', {
             connectionId,
@@ -159,9 +164,12 @@ export class WebSocketManager {
     // Add order to connection's subscriptions
     info.subscribedOrders.add(orderId);
 
+    const isAllOrders = orderId === this.ALL_ORDERS_ROOM;
+    const message = isAllOrders ? 'Subscribed to all order updates' : 'Subscribed to order updates';
+
     logger.info('Client subscribed to order', {
       connectionId,
-      orderId,
+      orderId: isAllOrders ? 'ALL_ORDERS' : orderId,
       roomSize: this.orderRooms.get(orderId)!.size,
     });
 
@@ -170,7 +178,7 @@ export class WebSocketManager {
       type: WebSocketMessageType.SUBSCRIBED,
       payload: {
         orderId,
-        message: 'Subscribed to order updates',
+        message,
       },
       timestamp: Date.now(),
     });
@@ -247,8 +255,20 @@ export class WebSocketManager {
    */
   broadcastOrderUpdate(orderId: string, update: OrderUpdateMessage): void {
     const room = this.orderRooms.get(orderId);
+    const allOrdersRoom = this.orderRooms.get(this.ALL_ORDERS_ROOM);
 
-    if (!room || room.size === 0) {
+    // Combine specific order room and all-orders room
+    const subscribers = new Set<string>();
+    
+    if (room) {
+      room.forEach((id) => subscribers.add(id));
+    }
+    
+    if (allOrdersRoom) {
+      allOrdersRoom.forEach((id) => subscribers.add(id));
+    }
+
+    if (subscribers.size === 0) {
       logger.debug('No subscribers for order update', { orderId });
       return;
     }
@@ -262,10 +282,12 @@ export class WebSocketManager {
     logger.info('Broadcasting order update', {
       orderId,
       status: update.status,
-      subscriberCount: room.size,
+      subscriberCount: subscribers.size,
+      specificSubscribers: room?.size || 0,
+      allOrdersSubscribers: allOrdersRoom?.size || 0,
     });
 
-    room.forEach((connectionId) => {
+    subscribers.forEach((connectionId) => {
       this.sendMessage(connectionId, message);
     });
   }
@@ -305,27 +327,39 @@ export class WebSocketManager {
   }
 
   /**
-   * Start heartbeat to check connection health
+   * Start heartbeat to check connection health and send pings
    */
   private startHeartbeat(): void {
     this.heartbeatInterval = setInterval(() => {
       const now = Date.now();
+      let pingsSent = 0;
+      let timedOut = 0;
 
       this.connectionInfo.forEach((info, connectionId) => {
         const timeSinceLastPing = now - info.lastPing;
 
-        // Check if connection is stale
+        // Check if connection is stale (no response for 2 minutes)
         if (timeSinceLastPing > this.CONNECTION_TIMEOUT) {
           logger.warn('Connection timeout, closing', {
             connectionId,
             timeSinceLastPing,
           });
           this.closeConnection(connectionId);
+          timedOut++;
+        } else {
+          // Send ping to keep connection alive
+          this.sendMessage(connectionId, {
+            type: WebSocketMessageType.PING,
+            timestamp: now,
+          });
+          pingsSent++;
         }
       });
 
       logger.debug('Heartbeat check completed', {
         activeConnections: this.connections.size,
+        pingsSent,
+        timedOut,
       });
     }, this.HEARTBEAT_INTERVAL);
 
