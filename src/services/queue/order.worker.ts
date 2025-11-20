@@ -2,7 +2,7 @@ import { Worker, Job, QueueEvents } from 'bullmq';
 import { OrderStatus } from '@prisma/client';
 import { config } from '../../config';
 import { logger } from '../../utils';
-import { OrderRepository } from '../../repositories';
+import { OrderRepository, ExecutionRepository } from '../../repositories';
 import { DexRouterService } from '../dex';
 import { WebSocketService } from '../websocket';
 import { queueConnection } from './order.queue';
@@ -16,10 +16,12 @@ export class OrderWorker {
   private worker: Worker<OrderJobData, OrderJobResult>;
   private queueEvents: QueueEvents;
   private orderRepository: OrderRepository;
+  private executionRepository: ExecutionRepository;
   private dexRouter: DexRouterService;
 
   constructor() {
     this.orderRepository = new OrderRepository();
+    this.executionRepository = new ExecutionRepository();
     this.dexRouter = new DexRouterService();
 
     // Create worker with concurrency settings
@@ -130,6 +132,20 @@ export class OrderWorker {
         txHash: swapResult.txHash,
         executedPrice: swapResult.executedPrice,
         outputAmount: swapResult.outputAmount,
+      });
+
+      // Save execution record
+      await this.executionRepository.create({
+        orderId,
+        dex: routingResult.selectedDex,
+        txHash: swapResult.txHash,
+        executedPrice: swapResult.executedPrice,
+        executedAmount: swapResult.outputAmount,
+        inputAmount: swapResult.inputAmount,
+        outputAmount: swapResult.outputAmount,
+        fee: swapResult.fee,
+        slippage: swapResult.actualSlippage,
+        executionTimeMs: swapResult.executionTimeMs,
       });
 
       // Update status to CONFIRMED
