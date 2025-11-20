@@ -1,22 +1,23 @@
-import { prisma, redis, redisCache } from './repositories';
+import { prisma, redis, redisCache } from '../../src/repositories';
 import { OrderType } from '@prisma/client';
+import { logger } from '../../src/utils';
 
 async function verifyDatabaseLayer() {
-  console.log('🔍 Verifying Database Layer Setup...\n');
+  logger.info('🔍 Verifying Database Layer Setup...\n');
 
   try {
     // Test PostgreSQL connection
-    console.log('1. Testing PostgreSQL connection...');
+    logger.info('1. Testing PostgreSQL connection...');
     await prisma.$queryRaw`SELECT 1`;
-    console.log('   ✅ PostgreSQL connected\n');
+    logger.info('   ✅ PostgreSQL connected\n');
 
     // Test Redis connection
-    console.log('2. Testing Redis connection...');
+    logger.info('2. Testing Redis connection...');
     await redis.ping();
-    console.log('   ✅ Redis connected\n');
+    logger.info('   ✅ Redis connected\n');
 
     // Test Order creation
-    console.log('3. Testing Order creation...');
+    logger.info('3. Testing Order creation...');
     const testOrder = await prisma.order.create({
       data: {
         type: OrderType.MARKET,
@@ -26,22 +27,22 @@ async function verifyDatabaseLayer() {
         slippage: 0.01,
       },
     });
-    console.log('   ✅ Order created:', testOrder.id);
+    logger.info('   ✅ Order created:', testOrder.id);
 
     // Test Redis cache
-    console.log('4. Testing Redis cache...');
+    logger.info('4. Testing Redis cache...');
     await redisCache.setOrder(testOrder.id, testOrder);
     const cachedOrder = await redisCache.getOrder(testOrder.id);
     if (!cachedOrder) throw new Error('Cache retrieval failed');
-    console.log('   ✅ Order cached and retrieved\n');
+    logger.info('   ✅ Order cached and retrieved\n');
 
     // Cleanup
-    console.log('5. Cleaning up test data...');
+    logger.info('5. Cleaning up test data...');
     await prisma.order.delete({ where: { id: testOrder.id } });
     await redisCache.deleteOrder(testOrder.id);
-    console.log('   ✅ Test data cleaned up\n');
+    logger.info('   ✅ Test data cleaned up\n');
 
-    console.log('✅ All database layer tests passed!\n');
+    logger.info('✅ All database layer tests passed!\n');
   } catch (error) {
     console.error('❌ Database layer verification failed:', error);
     throw error;
@@ -53,7 +54,6 @@ async function verifyDatabaseLayer() {
 
 verifyDatabaseLayer()
   .then(() => {
-    console.log('Database layer is ready for Step 3! 🚀');
     process.exit(0);
   })
   .catch((error) => {

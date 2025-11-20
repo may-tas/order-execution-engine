@@ -1,4 +1,4 @@
-import { logger } from './utils';
+import { logger } from '../../src/utils';
 import { OrderType } from '@prisma/client';
 
 /**
@@ -144,8 +144,6 @@ async function verifyAPI() {
     logger.info('  ✅ Request/response middleware');
     logger.info('  ✅ Full order processing pipeline');
 
-    logger.info('\n🚀 API System is ready for production!\n');
-
     process.exit(0);
   } catch (error) {
     logger.error('❌ API verification failed:', {
@@ -156,4 +154,4 @@ async function verifyAPI() {
 }
 
 // Run verification
-verifyAPI();
+void verifyAPI();

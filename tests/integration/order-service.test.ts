@@ -1,7 +1,7 @@
 import { OrderType } from '@prisma/client';
-import { logger } from './utils';
-import { OrderService } from './services/orders';
-import { OrderWorker } from './services/queue';
+import { logger } from '../../src/utils';
+import { OrderService } from '../../src/services/orders';
+import { OrderWorker } from '../../src/services/queue';
 
 async function verifyOrderService() {
   logger.info('🔍 Verifying Order Service...\n');
@@ -23,7 +23,7 @@ async function verifyOrderService() {
         amountIn: 10,
       });
       logger.error('❌ Validation should have failed');
-    } catch (_error) {
+    } catch {
       logger.info('✅ Validation correctly rejected invalid input');
     }
 
@@ -99,7 +99,7 @@ async function verifyOrderService() {
         amountIn: 1,
       });
       logger.warn('Order created with same tokenIn/tokenOut (should add validation)');
-    } catch (_error) {
+    } catch {
       logger.info('✅ Error handled gracefully');
     }
 
@@ -113,7 +113,7 @@ async function verifyOrderService() {
         amountIn: 2000000000, // Exceeds max
       });
       logger.error('❌ Should have rejected large amount');
-    } catch (_error) {
+    } catch {
       logger.info('✅ Large amount correctly rejected');
     }
 
@@ -128,7 +128,7 @@ async function verifyOrderService() {
         slippage: 0.6, // 60% - too high
       });
       logger.error('❌ Should have rejected high slippage');
-    } catch (_error) {
+    } catch {
       logger.info('✅ High slippage correctly rejected');
     }
 
@@ -143,8 +143,6 @@ async function verifyOrderService() {
     logger.info('  ✅ Error handling');
     logger.info('  ✅ DEX router integration');
     logger.info('  ✅ Queue system integration\n');
-
-    logger.info('Order Service is ready for Step 6! 🚀\n');
   } catch (error) {
     logger.error('❌ Order Service verification failed:', error);
     throw error;

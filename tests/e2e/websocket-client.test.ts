@@ -5,7 +5,7 @@
  */
 
 import WebSocket from 'ws';
-import { logger } from './utils';
+import { logger } from '../../src/utils';
 
 const WS_URL = 'ws://localhost:3000/ws';
 
@@ -45,29 +45,35 @@ async function testWebSocketClient() {
           logger.info(`✅ Order created: ${id}`);
           logger.info('   Waiting for WebSocket updates...\n');
         })
-        .catch((error) => {
-          logger.error('Failed to create order', { error });
+        .catch((error: unknown) => {
+          logger.error('Failed to create order', { error: error instanceof Error ? error.message : String(error) });
           ws.close();
-          reject(error);
+          reject(error instanceof Error ? error : new Error(String(error)));
         });
     });
 
     // Receive messages
     ws.on('message', (data: Buffer) => {
       try {
-        const message = JSON.parse(data.toString());
+        const message = JSON.parse(data.toString()) as {
+          type: string;
+          clientId?: string;
+          orderId?: string;
+          data?: OrderUpdateMessage;
+          error?: string;
+        };
 
         // Handle different message types
         if (message.type === 'connected') {
           logger.info('📨 Server confirmed connection', {
-            clientId: message.clientId,
+            clientId: message.clientId ?? 'unknown',
           });
         } else if (message.type === 'subscribed') {
           logger.info('📨 Subscription confirmed', {
-            orderId: message.orderId,
+            orderId: message.orderId ?? 'unknown',
           });
-        } else if (message.type === 'order-update') {
-          const update = message.data as OrderUpdateMessage;
+        } else if (message.type === 'order-update' && message.data) {
+          const update = message.data;
           receivedUpdates.push(update);
 
           logger.info(`📨 Order Update #${receivedUpdates.length}:`, {
@@ -91,11 +97,16 @@ async function testWebSocketClient() {
               });
 
               if (update.status === 'CONFIRMED' && update.metadata) {
+                const txHash = update.metadata.txHash;
+                const outputAmount = update.metadata.outputAmount;
+                const executedPrice = update.metadata.executedPrice;
+                const dex = update.metadata.dex;
+                
                 logger.info(`\n   ✅ Execution details:`);
-                logger.info(`      TX Hash: ${update.metadata.txHash || 'N/A'}`);
-                logger.info(`      Output: ${update.metadata.outputAmount || 'N/A'}`);
-                logger.info(`      Price: ${update.metadata.executedPrice || 'N/A'}`);
-                logger.info(`      DEX: ${update.metadata.dex || 'N/A'}`);
+                logger.info(`      TX Hash: ${typeof txHash === 'string' || typeof txHash === 'number' ? String(txHash) : 'N/A'}`);
+                logger.info(`      Output: ${typeof outputAmount === 'string' || typeof outputAmount === 'number' ? String(outputAmount) : 'N/A'}`);
+                logger.info(`      Price: ${typeof executedPrice === 'string' || typeof executedPrice === 'number' ? String(executedPrice) : 'N/A'}`);
+                logger.info(`      DEX: ${typeof dex === 'string' || typeof dex === 'number' ? String(dex) : 'N/A'}`);
               }
 
               ws.close();
@@ -103,9 +114,9 @@ async function testWebSocketClient() {
             }, 1000);
           }
         } else if (message.type === 'error') {
-          logger.error('❌ Server error', { error: message.error });
+          logger.error('❌ Server error', { error: message.error ?? 'unknown error' });
         } else {
-          logger.info('📨 Unknown message type', { message });
+          logger.info('📨 Unknown message type', { type: message.type });
         }
       } catch (error) {
         logger.error('Failed to parse message', {

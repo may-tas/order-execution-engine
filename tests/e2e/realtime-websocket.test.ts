@@ -6,7 +6,7 @@
  */
 
 import WebSocket from 'ws';
-import { logger } from './utils';
+import { logger } from '../../src/utils';
 
 const BASE_URL = 'http://localhost:3000';
 const WS_URL = 'ws://localhost:3000/ws';
@@ -35,10 +35,10 @@ async function verifyRealTimeFlow() {
 
   ws.on('message', (data: Buffer) => {
     try {
-      const message = JSON.parse(data.toString());
+      const message = JSON.parse(data.toString()) as { type: string; payload: OrderUpdateMessage };
 
       if (message.type === 'order-update') {
-        const update = message.payload as OrderUpdateMessage;
+        const update = message.payload;
         stateUpdates.push(update);
 
         logger.info(`   📍 State: ${update.status.padEnd(10)} | ${update.message || 'No message'}`, {
@@ -49,7 +49,7 @@ async function verifyRealTimeFlow() {
             : undefined,
         });
       }
-    } catch (error) {
+    } catch {
       // Ignore parsing errors
     }
   });

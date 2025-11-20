@@ -1,4 +1,4 @@
-import { logger } from './utils';
+import { logger } from '../../src/utils';
 import { OrderType } from '@prisma/client';
 
 /**
@@ -276,4 +276,4 @@ async function verifyIntegration() {
 }
 
 // Run verification
-verifyIntegration();
+void verifyIntegration();

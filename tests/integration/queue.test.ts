@@ -1,6 +1,6 @@
 import { OrderType } from '@prisma/client';
-import { logger } from './utils';
-import { OrderWorker, OrderQueueService } from './services/queue';
+import { logger } from '../../src/utils';
+import { OrderWorker, OrderQueueService } from '../../src/services/queue';
 
 async function verifyOrderQueue() {
   logger.info('🔍 Verifying Order Queue System...\n');
@@ -66,7 +66,7 @@ async function verifyOrderQueue() {
       }),
     ]);
     logger.info(`✅ ${orders.length} orders submitted concurrently`, {
-      orderIds: orders.map((o) => o.orderId),
+      orderIds: orders.map((o: { orderId: string; jobId: string }) => o.orderId),
     });
 
     logger.info('\n4. Monitoring queue processing...');
@@ -94,8 +94,6 @@ async function verifyOrderQueue() {
     logger.info('  ✅ Queue monitoring and statistics');
     logger.info('  ✅ DEX routing integration');
     logger.info('  ✅ Database persistence\n');
-
-    logger.info('Queue System is ready for Step 5! 🚀\n');
   } catch (error) {
     logger.error('❌ Order Queue verification failed:', error);
     throw error;

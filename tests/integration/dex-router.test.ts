@@ -1,5 +1,5 @@
-import { DexRouterService } from './services/dex';
-import { logger } from './utils';
+import { DexRouterService } from '../../src/services/dex';
+import { logger } from '../../src/utils';
 
 async function verifyDexRouter() {
   logger.info('🔍 Verifying DEX Router Service...\n');
@@ -18,7 +18,7 @@ async function verifyDexRouter() {
     logger.info('1. Testing quote fetching from all DEXs...');
     const quotes = await router.getAllQuotes(swapParams);
     logger.info(`✅ Received ${quotes.length} quotes`, {
-      quotes: quotes.map((q) => ({
+      quotes: quotes.map((q: { dex: string; estimatedOutput: number; price: number; fee: number; latencyMs: number }) => ({
         dex: q.dex,
         price: q.price.toFixed(4),
         output: q.estimatedOutput.toFixed(4),
@@ -58,7 +58,6 @@ async function verifyDexRouter() {
     });
 
     logger.info('\n✅ All DEX Router tests passed!\n');
-    logger.info('DEX Router is ready for Step 4! 🚀\n');
   } catch (error) {
     logger.error('❌ DEX Router verification failed:', error);
     throw error;

@@ -17,7 +17,17 @@
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "test:db": "tsx tests/integration/database.test.ts",
+    "test:dex": "tsx tests/integration/dex-router.test.ts",
+    "test:queue": "tsx tests/integration/queue.test.ts",
+    "test:orders": "tsx tests/integration/order-service.test.ts",
+    "test:websocket": "tsx tests/e2e/realtime-websocket.test.ts",
+    "test:api": "tsx tests/e2e/api.test.ts",
+    "test:integration": "tsx tests/e2e/full-integration.test.ts",
+    "test:all:integration": "tsx tests/integration/database.test.ts && tsx tests/integration/dex-router.test.ts && tsx tests/integration/queue.test.ts && tsx tests/integration/order-service.test.ts",
+    "test:all:e2e": "bash scripts/test-e2e.sh",
+    "test:all": "pnpm test:all:integration && pnpm test:all:e2e"
   },
   "keywords": [
     "dex",
