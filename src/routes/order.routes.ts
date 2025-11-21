@@ -67,6 +67,9 @@ export function orderRoutes(fastify: FastifyInstance) {
     orderController.simulateOrder.bind(orderController)
   );
 
+  // Get order statistics (must be before /:orderId to avoid route conflict)
+  fastify.get('/stats', orderController.getOrderStats.bind(orderController));
+
   // Get order by ID
   fastify.get(
     '/:orderId',
@@ -84,7 +87,4 @@ export function orderRoutes(fastify: FastifyInstance) {
     },
     orderController.getOrder.bind(orderController)
   );
-
-  // Get order statistics
-  fastify.get('/stats', orderController.getOrderStats.bind(orderController));
 }
