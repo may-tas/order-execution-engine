@@ -15,7 +15,7 @@ import {
 /**
  * WebSocket Manager
  * Handles WebSocket connections, room-based broadcasting, and heartbeat
- * 
+ *
  * Timeout Strategy:
  * - HEARTBEAT_INTERVAL: 30s - Server actively pings clients to maintain connections
  * - CONNECTION_TIMEOUT: 5min - Connections timeout after 5 minutes of no response
@@ -259,11 +259,11 @@ export class WebSocketManager {
 
     // Combine specific order room and all-orders room
     const subscribers = new Set<string>();
-    
+
     if (room) {
       room.forEach((id) => subscribers.add(id));
     }
-    
+
     if (allOrdersRoom) {
       allOrdersRoom.forEach((id) => subscribers.add(id));
     }

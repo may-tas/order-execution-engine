@@ -45,47 +45,49 @@ fastify.addHook('onResponse', async (request, reply) => {
 });
 
 // Error handler
-fastify.setErrorHandler((error: Error & { validation?: unknown; statusCode?: number }, request, reply) => {
-  logger.error('Request error', {
-    error: error.message,
-    stack: error.stack,
-    method: request.method,
-    url: request.url,
-  });
+fastify.setErrorHandler(
+  (error: Error & { validation?: unknown; statusCode?: number }, request, reply) => {
+    logger.error('Request error', {
+      error: error.message,
+      stack: error.stack,
+      method: request.method,
+      url: request.url,
+    });
 
-  // Validation errors
-  if (error.validation) {
-    return reply.status(400).send({
+    // Validation errors
+    if (error.validation) {
+      return reply.status(400).send({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid request data',
+          details: error.validation,
+        },
+      });
+    }
+
+    // Rate limit errors
+    if (error.statusCode === 429) {
+      return reply.status(429).send({
+        success: false,
+        error: {
+          code: 'RATE_LIMIT_EXCEEDED',
+          message: 'Too many requests, please try again later',
+        },
+      });
+    }
+
+    // Generic server errors
+    const statusCode = error.statusCode || 500;
+    return reply.status(statusCode).send({
       success: false,
       error: {
-        code: 'VALIDATION_ERROR',
-        message: 'Invalid request data',
-        details: error.validation,
+        code: 'INTERNAL_ERROR',
+        message: config.server.nodeEnv === 'development' ? error.message : 'Internal server error',
       },
     });
   }
-
-  // Rate limit errors
-  if (error.statusCode === 429) {
-    return reply.status(429).send({
-      success: false,
-      error: {
-        code: 'RATE_LIMIT_EXCEEDED',
-        message: 'Too many requests, please try again later',
-      },
-    });
-  }
-
-  // Generic server errors
-  const statusCode = error.statusCode || 500;
-  return reply.status(statusCode).send({
-    success: false,
-    error: {
-      code: 'INTERNAL_ERROR',
-      message: config.server.nodeEnv === 'development' ? error.message : 'Internal server error',
-    },
-  });
-});
+);
 
 // Not found handler
 fastify.setNotFoundHandler((request, reply) => {

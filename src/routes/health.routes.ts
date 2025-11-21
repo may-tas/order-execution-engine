@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { HealthController } from '../controllers';
 
-export async function healthRoutes(fastify: FastifyInstance) {
+export function healthRoutes(fastify: FastifyInstance) {
   const healthController = new HealthController();
 
   // Basic health check
