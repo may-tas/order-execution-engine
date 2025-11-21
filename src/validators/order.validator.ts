@@ -5,7 +5,7 @@ import { OrderType } from '@prisma/client';
  * Create Order Request Schema
  */
 export const createOrderSchema = z.object({
-  type: z.nativeEnum(OrderType, {
+  type: z.enum([OrderType.MARKET, OrderType.LIMIT, OrderType.SNIPER], {
     message: 'Order type must be MARKET, LIMIT, or SNIPER',
   }),
   tokenIn: z
@@ -43,18 +43,14 @@ export const marketOrderSchema = createOrderSchema.extend({
 
 export type MarketOrderInput = z.infer<typeof marketOrderSchema>;
 
-/**
- * Order ID parameter schema
- */
+// Future Use: URL parameter validation for GET /api/orders/:orderId routes
 export const orderIdSchema = z.object({
   orderId: z.string().uuid('Invalid order ID format'),
 });
 
 export type OrderIdParam = z.infer<typeof orderIdSchema>;
 
-/**
- * Order Status Query Schema
- */
+// Future Use: Query parameter validation for paginated list endpoints (GET /api/orders?status=PENDING&limit=20)
 export const orderStatusQuerySchema = z.object({
   status: z.enum(['PENDING', 'ROUTING', 'BUILDING', 'SUBMITTED', 'CONFIRMED', 'FAILED']).optional(),
   limit: z
@@ -75,9 +71,7 @@ export const orderStatusQuerySchema = z.object({
 
 export type OrderStatusQuery = z.infer<typeof orderStatusQuerySchema>;
 
-/**
- * Token Pair Validation Schema
- */
+// Future Use: Token pair validation for DEX-specific endpoints
 export const tokenPairSchema = z.object({
   tokenIn: z.string().min(1),
   tokenOut: z.string().min(1),
@@ -85,12 +79,10 @@ export const tokenPairSchema = z.object({
 
 export type TokenPair = z.infer<typeof tokenPairSchema>;
 
-/**
- * Order Response DTO
- */
+// Future Use: Standardize order response DTOs across all endpoints
 export const orderResponseSchema = z.object({
   id: z.string().uuid(),
-  type: z.nativeEnum(OrderType),
+  type: z.enum([OrderType.MARKET, OrderType.LIMIT, OrderType.SNIPER]),
   tokenIn: z.string(),
   tokenOut: z.string(),
   amountIn: z.number(),
@@ -105,9 +97,7 @@ export const orderResponseSchema = z.object({
 
 export type OrderResponse = z.infer<typeof orderResponseSchema>;
 
-/**
- * Order Execution Result DTO
- */
+// Future Use: Validate execution results from workers and DEX providers
 export const orderExecutionResultSchema = z.object({
   orderId: z.string().uuid(),
   success: z.boolean(),
@@ -122,16 +112,11 @@ export const orderExecutionResultSchema = z.object({
 
 export type OrderExecutionResult = z.infer<typeof orderExecutionResultSchema>;
 
-/**
- * Validation helper function
- */
+// Reusable validation helpers for controllers and services
 export function validateSchema<T>(schema: z.ZodSchema<T>, data: unknown): T {
   return schema.parse(data);
 }
 
-/**
- * Safe validation helper (returns errors instead of throwing)
- */
 export function safeValidateSchema<T>(
   schema: z.ZodSchema<T>,
   data: unknown
